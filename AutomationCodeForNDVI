@@ -1,0 +1,51 @@
+# Import libraries
+import glob
+import numpy as np
+from osgeo import gdal # If GDAL doesn't recognize jp2 format, check version</pre>
+# Set input directory
+# in_dir = 'D:/FYP/Data/y2022/May2022/L1C_T42RWS_A027287_20220528T060913/S2B_MSIL1C_20220528T055639_N0400_R091_T42RWS_20220528T080106.SAFE/GRANULE/L1C_T42RWS_A027287_20220528T060913/IMG_DATA/'
+ 
+# Search directory for desired bands
+redBnd = gdal.Open('D:/FYP/Data/y2022/May2022/L1C_T42RWS_A027287_20220528T060913/S2B_MSIL1C_20220528T055639_N0400_R091_T42RWS_20220528T080106.SAFE/GRANULE/L1C_T42RWS_A027287_20220528T060913/IMG_DATA/T42RWS_20220528T055639_B04.jp2') # red band
+nirBnd = gdal.Open('D:/FYP/Data/y2022/May2022/L1C_T42RWS_A027287_20220528T060913/S2B_MSIL1C_20220528T055639_N0400_R091_T42RWS_20220528T080106.SAFE/GRANULE/L1C_T42RWS_A027287_20220528T060913/IMG_DATA/T42RWS_20220528T055639_B08.jp2') # nir band
+ 
+# Define a function to calculate NDVI using band arrays for red, NIR bands
+def ndvi(red, nir):
+ return ((nir - red)/(nir + red))
+ 
+# Open each band using gdal
+redB = gdal.Open(redBnd)
+nirB = gdal.Open(nirBnd)
+ 
+# read in each band as array and convert to float for calculations
+red = redB.ReadAsArray().astype(np.float)
+nir = nirB.ReadAsArray().astype(np.float)
+ 
+# Call the ndvi() function on red, NIR bands
+ndvi2 = ndvi(red, nir)
+ 
+# Create output filename based on input name 
+outfile_name = 'D:/FYP/Data/y2022/May2022/L1C_T42RWS_A027287_20220528T060913/NDVI.tif'
+ 
+x_pixels = ndvi2.shape[0] # number of pixels in x
+y_pixels = ndvi2.shape[1] # number of pixels in y
+ 
+# Set up output GeoTIFF
+driver = gdal.GetDriverByName('GTiff')
+ 
+# Create driver using output filename, x and y pixels, # of bands, and datatype
+ndvi_data = driver.Create(outfile_name,x_pixels, y_pixels, 1,gdal.GDT_Float32)
+ 
+# Set NDVI array as the 1 output raster band
+ndvi_data.GetRasterBand(1).WriteArray(ndvi2)
+ 
+# Setting up the coordinate reference system of the output GeoTIFF
+geotrans=redB.GetGeoTransform() # Grab input GeoTranform information
+proj=redB.GetProjection() # Grab projection information from input file
+ 
+# now set GeoTransform parameters and projection on the output file
+ndvi_data.SetGeoTransform(geotrans) 
+ndvi_data.SetProjection(proj)
+ndvi_data.FlushCache()
+ndvi_data=None
+###############################################################################
